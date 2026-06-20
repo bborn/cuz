@@ -1,98 +1,121 @@
 # cuz
 
-**A two-speed memory layer for your AI coding sessions.** Capture is dumb, cheap,
-and automatic; distill is smart, precise, and human-in-the-loop. The result is a
-small library of durable facts and skills that you *own* — plain markdown in git,
-not a junk drawer in someone's database.
+Every AI coding session starts from zero. You re-explain your stack, your
+conventions, the gotcha that bit you last week — and the next session knows none
+of it. Across a dozen projects, you burn real time re-teaching agents things you
+already taught them.
+
+cuz makes sessions accumulate. It quietly reads your Claude Code transcripts,
+pulls out the durable stuff (facts, decisions, the procedure that finally
+worked), and — with you in the loop — distills it into a small library your
+future sessions can search and follow. It's plain markdown in a git repo you own.
+
+## How it works
+
+Two speeds, on purpose:
 
 ```
   hourly sweep (automatic, frugal)            you (occasionally)
         │                                          │
-  bin/cuz-sweep.sh                            /cuz-distill
-        │  scans Claude transcripts                │  cluster + dedupe + cull
-        │  touched since last run                  │  → skill / memory / drop / keep
-        ▼                                          ▼  (auto-applies; flags hard calls)
+  cuz-sweep.sh                                /cuz-distill
+        │  skims new transcripts                   │  cluster · dedupe · cull
+        │  since last run                          │  → skill / memory / drop / keep
+        ▼                                          ▼  (auto-applies; asks on hard calls)
    INBOX.md  ───────────────────────────────►  library/   (memory + skills)
    raw, high-recall buffer                      processed/  (archive of everything)
 ```
 
-**Capture over-collects on purpose; distill culls.** That asymmetry is the whole
-idea — the unattended sweep never authors a skill, it only fills the inbox. The
-precision happens later, with you in the loop, and it's all git-tracked so any
-write is one revert away.
+**Capture** is dumb and cheap. An hourly job skims new transcripts and dumps
+anything that might matter into an inbox. It hoards — recall over precision — and
+decides nothing.
 
-## Is this just another AI memory tool?
+**Distill** is the smart pass. You run `/cuz-distill` when the inbox gets heavy;
+it clusters the captures, drops the noise, and writes the keepers into `library/`.
+It applies the obvious calls itself and only stops to ask on the genuinely
+ambiguous ones. It's all in git, so a bad write is one revert away.
 
-Honest answer: the *store-and-retrieve* part is commoditized (mem0, Zep, and the
-model vendors' own native memory all do it), and Obsidian is a better tool if you
-want a **human** note-taking app. cuz is opinionated about three things those
-don't emphasize:
+The split is the point: the cheap always-on layer gets to be reckless because the
+careful layer cleans up after it.
 
-1. **Distill discipline.** Most auto-memory greedily extracts and accretes junk.
-   cuz over-collects cheaply, then *aggressively culls* to a small owned library.
-2. **Skills as output.** A procedure that recurs gets promoted into an
-   auto-loading `SKILL.md`, not just stored as a fact.
-3. **File-first & forkable.** Markdown + git history, runtime-agnostic, no DB
-   lock-in. Your brain is a private repo you control.
+## Why not just use X?
 
-If you want a sprawling searchable log of everything, use something else. cuz is
-for keeping a *tight* one.
+Fair question.
 
-## Two repos by design
+- **mem0 / Zep / built-in model memory** already do store-and-retrieve. If that's
+  all you want, use one of those.
+- **Obsidian** is a better notes app — for a *human* reading notes. cuz's reader
+  is the agent.
 
-- **This repo (the engine)** — code only. Identical for everyone. Contains no
-  knowledge.
-- **Your brain** — a separate, **private** repo (`library/`, `processed/`,
-  `INBOX.md`) created by `cuz init`. This is where your facts live. Never commit a
-  brain into the engine; `.gitignore` guards against it.
+cuz pushes on one thing those don't: keeping a small, owned, *curated* library
+instead of an ever-growing pile. Three opinions fall out of that:
 
-The engine finds your brain through one variable, `CUZ_HOME`, set in
-`~/.config/cuz/config`. Think Hugo (engine) + your content repo, or Obsidian (app)
-+ your vault.
+1. **Cull hard.** Capture hoards; distill is ruthless. If the library is
+   sprawling, it's failing.
+2. **Procedures become skills.** A recurring how-to gets promoted to an
+   auto-loading `SKILL.md`, not just filed as a fact.
+3. **Markdown + git, no database.** Fork it, grep it, diff it. Nothing to lock you
+   in.
+
+If you want a searchable log of everything you've ever done, this is the wrong
+tool.
+
+## Two repos
+
+The engine is public and identical for everyone. Your knowledge is private and
+yours.
+
+- **This repo** — code only. Zero knowledge in it (a `.gitignore` refuses to let a
+  brain get committed here).
+- **Your brain** — a separate, private repo (`library/`, `processed/`, `INBOX.md`)
+  that `cuz init` creates and wires up.
+
+The engine finds your brain through one setting, `CUZ_HOME`. Same shape as Hugo +
+your content, or Obsidian + your vault.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/you/cuz && cd cuz
-ln -s "$PWD/bin/cuz" /usr/local/bin/cuz          # or add bin/ to PATH
+git clone https://github.com/bborn/cuz && cd cuz
+ln -s "$PWD/bin/cuz" ~/.local/bin/cuz        # put `cuz` on your PATH
 
 cuz init ~/cuz-brain --name "Your Name" \
-  --context "what you work on — companies, products, stack"
+  --context "what you work on: companies, products, stack"
 
-cuz schedule install                              # hourly capture + weekly propose (macOS launchd)
-ln -s "$PWD/cuz-distill" ~/.claude/skills/cuz-distill   # install the distill skill
+cuz schedule install                          # background capture (macOS launchd)
+ln -s "$PWD/cuz-distill" ~/.claude/skills/cuz-distill
 ```
 
-Then just work. Capture fills `~/cuz-brain/INBOX.md` automatically. When it's
-grown, run `/cuz-distill` inside Claude Code to fold it into your library.
+Then just work. The inbox fills on its own. When it's grown, run `/cuz-distill`
+inside Claude Code.
 
-**Requirements:** the `claude` CLI (Claude Code), Python 3, and
-[`qmd`](https://github.com/) for search. macOS for the bundled launchd agents
-(Linux: run `bin/cuz-sweep.sh` hourly and `bin/cuz-distill-prepare.sh` weekly from
-cron — the scripts are portable).
+**Needs:** the `claude` CLI (Claude Code), Python 3, and `qmd` (a local markdown
+search tool) for `cuz search`. The scheduled agents use macOS launchd; on Linux,
+run `bin/cuz-sweep.sh` hourly and `bin/cuz-distill-prepare.sh` weekly from cron —
+the scripts themselves are portable.
 
-## Spends only when there's headroom
+## It only spends when there's room
 
-The sweep runs hourly but is frugal by design (all overridable via env / the
-plist):
+Capture runs hourly but won't blow your budget or fight you for it:
 
-- **Daily USD cap** (`CUZ_DAILY_USD`, default $1.50), enforced from a usage ledger.
-- **Yields to active work** — if you used a session in the last 15 min, it skips.
-- **Overnight-biased** — more extractions at night, few by day.
-- **Skips trivial sessions**, never re-extracts one (per-session watermarks).
-- **Haiku by default** (~cents/session); set `CUZ_MODEL` to Sonnet for more recall.
+- Hard daily dollar cap (`CUZ_DAILY_USD`, default $1.50), enforced from a usage
+  ledger.
+- Skips entirely if you've touched a session in the last 15 minutes.
+- Does more overnight, little during the day.
+- Ignores trivial sessions; never re-reads one it already processed.
+- Runs Haiku by default (cents per session). Point `CUZ_MODEL` at Sonnet for more
+  recall.
 
-## Consuming the library
+## Getting it back out
 
-Distilling is pointless if nothing reads it back. Two paths:
+A library nothing reads is useless. Two ways it gets consumed:
 
-- **Facts** are searchable via a dedicated `qmd` index:
-  ```bash
-  cuz search "deploy staging"        # keyword (BM25)
-  cuz query  "how do we handle oauth on ios"   # hybrid + rerank
-  ```
-- **Skills** distilled into a project's `.claude/skills/` load automatically the
-  next time that skill's triggers match.
+```bash
+cuz search "deploy staging"                  # keyword
+cuz query  "how do we handle oauth on ios"   # hybrid, reranked
+```
+
+And **skills** distilled into a project's `.claude/skills/` load themselves the
+next time their triggers match — no lookup needed.
 
 ## Commands
 
@@ -116,14 +139,17 @@ legacy/         the retired per-event hook approach (opt-in)
 templates/      what `cuz init` copies into a new brain
 ```
 
-## A caveat worth stating
+## It will sometimes be wrong
 
-cuz's automatic capture can snapshot an agent's *wrong* belief from mid-session —
-and the distill pass can propagate it into your library if you're not careful.
-That's exactly why distill is human-in-the-loop and why the skill is told to treat
-a captured "correction" of an existing fact as a hard call. Memory that maintains
-itself is powerful and occasionally confidently wrong; the curation step is the
-point, not an afterthought.
+Worth knowing before you trust it: automatic capture can record something an agent
+believed *mid-session*, before you corrected it. If distill isn't careful, that
+wrong belief lands in your library and every future session reads it as fact. This
+happened to me — a captured "correction" flipped a true fact into a false one.
+
+That's exactly why distill keeps a human in the loop, and why it treats a capture
+that "corrects" an existing fact as something to double-check rather than
+auto-apply. Self-maintaining memory is convenient; it's not a substitute for the
+review step. Don't skip it.
 
 ## License
 
