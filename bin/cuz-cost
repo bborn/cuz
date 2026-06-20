@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# What cuz has spent, from its own usage ledger. Capture (hourly sweep, cheap
+# model) and distill (weekly propose, smarter model) are metered separately so
+# you can see where the money goes and tune the caps.
+#   cuz cost        # today / 7d / 30d / all-time, split capture vs distill, by model
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; . "$HERE/_cuz-env.sh"
+LEDGER="$CUZ_CACHE/usage-ledger.jsonl"
+[ -f "$LEDGER" ] || { echo "no usage recorded yet ($LEDGER)"; exit 0; }
+
+LEDGER="$LEDGER" python3 <<'PY'
+import json, os, datetime
+from collections import defaultdict
+
+led = os.environ["LEDGER"]
+today = datetime.date.today()
+def ago(n): return (today - datetime.timedelta(days=n)).isoformat()
+t = today.isoformat()
+buckets = [("today", t, t), ("last 7d", ago(6), t), ("last 30d", ago(29), t), ("all-time", None, None)]
+
+rows = []
+for line in open(led):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        rows.append(json.loads(line))
+    except Exception:
+        continue
+
+def kind(r):   return "distill" if r.get("kind") == "distill" else "capture"
+def cost(r):   return r.get("cost_usd", 0) or 0
+def inb(d, lo, hi): return lo is None or (lo <= (d or "") <= hi)
+
+print(f"cuz spend  ({led})\n")
+print(f"{'':10} {'capture':>9} {'distill':>9} {'total':>9}")
+for name, lo, hi in buckets:
+    c = sum(cost(r) for r in rows if kind(r) == "capture" and inb(r.get("date"), lo, hi))
+    d = sum(cost(r) for r in rows if kind(r) == "distill" and inb(r.get("date"), lo, hi))
+    print(f"{name:10} {'$%.2f'%c:>9} {'$%.2f'%d:>9} {'$%.2f'%(c+d):>9}")
+
+mt = defaultdict(lambda: [0, 0.0, 0])  # calls, cost, tokens
+for r in rows:
+    m = mt[r.get("model", "?")]
+    m[0] += 1; m[1] += cost(r); m[2] += r.get("tokens", 0) or 0
+print("\nby model (all-time):")
+for model, (calls, c, tok) in sorted(mt.items(), key=lambda kv: -kv[1][1]):
+    print(f"  {model.split('/')[-1]:30} {calls:5} calls  ${c:7.2f}  {tok/1e6:6.1f}M tok")
+
+cap_days = len({r.get("date") for r in rows if kind(r) == "capture"})
+cap_cost = sum(cost(r) for r in rows if kind(r) == "capture")
+if cap_days:
+    print(f"\ncapture averages ${cap_cost/cap_days:.2f}/active day over {cap_days} days")
+PY

@@ -9,6 +9,7 @@
 #   cuz search <q>      keyword search your distilled library
 #   cuz query  <q>      hybrid (LLM) search your distilled library
 #   cuz fix [q]         find a wrong fact/skill, open it to edit, reindex
+#   cuz cost            what cuz has spent (today / 7d / 30d / all-time)
 #   cuz status          agents loaded? today's spend, latest proposal
 #   cuz schedule ...    install | uninstall | status the background agents
 #   cuz hooks ...        install | uninstall | status the /cuz-distill reminder
@@ -39,6 +40,7 @@ case "$cmd" in
   search)    . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" search "$@" ;;
   query)     . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" query "$@" ;;
   fix)       exec bash "$HERE/cuz-fix" "$@" ;;
+  cost|usage) exec bash "$HERE/cuz-cost" "$@" ;;
   ""|-h|--help|help)
     awk 'NR>1{ if ($0 !~ /^#/) exit; print }' "$0" | sed 's/^# \{0,1\}//' ;;
   *) echo "cuz: unknown command '$cmd' (try: cuz --help)" >&2; exit 1 ;;
