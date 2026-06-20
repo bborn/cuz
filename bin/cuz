@@ -12,6 +12,7 @@
 #   cuz status          agents loaded? today's spend, latest proposal
 #   cuz schedule ...    install | uninstall | status the background agents
 #   cuz hooks ...        install | uninstall | status the /cuz-distill reminder
+#   cuz skills ...       install | uninstall | status — load skills into Claude Code
 #
 # To DISTILL (the smart pass), run the /cuz-distill skill inside Claude Code.
 set -uo pipefail
@@ -33,6 +34,7 @@ case "$cmd" in
   reindex)   exec bash "$HERE/cuz-reindex.sh" "$@" ;;
   schedule)  exec bash "$HERE/../schedule/schedule.sh" "$@" ;;
   hooks)     exec "$HERE/cuz-hooks" "$@" ;;
+  skills)    exec bash "$HERE/cuz-skills" "$@" ;;
   status)    exec bash "$HERE/../schedule/schedule.sh" status ;;
   search)    . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" search "$@" ;;
   query)     . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" query "$@" ;;

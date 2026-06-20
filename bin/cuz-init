@@ -83,6 +83,9 @@ Next:
        ln -s "$ENGINE/cuz-distill" ~/.claude/skills/cuz-distill
   3b. Install the reminder (nudges you when a proposal is waiting):
        cuz hooks install
+  3c. After your first distill, make sessions USE the library:
+       cuz skills install      # auto-load your distilled skills
+       # + add a "search cuz first" line to ~/.claude/CLAUDE.md (see the README)
   4. (Optional) push the brain somewhere PRIVATE:
        cd $BRAIN && git remote add origin git@github.com:you/cuz-brain.git && git push -u origin main
 

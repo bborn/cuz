@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Link your distilled cuz skills into Claude Code so they auto-load on trigger.
+# Skills live in your brain ($CUZ_HOME/library/skills) but Claude Code only loads
+# skills from its own skills dir — this symlinks them across.
+#
+#   cuz skills status               list brain skills + whether they're linked
+#   cuz skills install [name...]    symlink all (or named) into ~/.claude/skills
+#   cuz skills uninstall [name...]  remove those symlinks
+#
+# Override the target dir with CUZ_SKILLS_DIR (e.g. a project's .claude/skills).
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; . "$HERE/_cuz-env.sh"
+SRC_DIR="$CUZ_HOME/library/skills"
+DEST_DIR="${CUZ_SKILLS_DIR:-$HOME/.claude/skills}"
+
+mode="${1:-status}"; [ $# -gt 0 ] && shift
+all="$(ls "$SRC_DIR" 2>/dev/null || true)"
+sel="$*"; [ -z "$sel" ] && sel="$all"
+
+case "$mode" in
+  status)
+    [ -z "$all" ] && { echo "no skills in $SRC_DIR yet"; exit 0; }
+    printf '%-26s %s\n' "skill" "linked into $DEST_DIR?"
+    for n in $all; do
+      d="$DEST_DIR/$n"
+      if [ -L "$d" ] && [ "$(readlink "$d")" = "$SRC_DIR/$n" ]; then s="yes"
+      elif [ -e "$d" ]; then s="NO — name taken by something else"
+      else s="no"; fi
+      printf '%-26s %s\n' "$n" "$s"
+    done
+    ;;
+  install)
+    mkdir -p "$DEST_DIR"
+    for n in $sel; do
+      src="$SRC_DIR/$n"; d="$DEST_DIR/$n"
+      [ -f "$src/SKILL.md" ] && true || { echo "skip $n (no SKILL.md)"; continue; }
+      if [ -L "$d" ] && [ "$(readlink "$d")" = "$src" ]; then echo "ok    $n (already linked)"; continue; fi
+      if [ -e "$d" ]; then echo "SKIP  $n ($d exists and isn't a cuz link)"; continue; fi
+      ln -s "$src" "$d" && echo "link  $n"
+    done
+    ;;
+  uninstall)
+    for n in $sel; do
+      d="$DEST_DIR/$n"
+      if [ -L "$d" ] && [ "$(readlink "$d")" = "$SRC_DIR/$n" ]; then rm -f "$d"; echo "unlink $n"
+      else echo "skip  $n (not a cuz link)"; fi
+    done
+    ;;
+  *) echo "usage: cuz skills [status|install|uninstall] [name...]"; exit 1 ;;
+esac

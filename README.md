@@ -157,15 +157,34 @@ Capture runs hourly but won't blow your budget or fight you for it:
 
 ## Getting it back out
 
-A library nothing reads is useless. Two ways it gets consumed:
+A library nothing reads is useless — and by default your agent won't reach for it.
+Two small steps wire that up:
+
+**1. Let your skills auto-load.** `cuz skills install` symlinks your distilled
+skills into Claude Code's skills dir, so they fire on their own the next time
+their triggers match:
+
+```bash
+cuz skills install            # link all (or: cuz skills install <name> ...)
+cuz skills status             # see what's linked
+```
+
+**2. Tell the agent the facts exist.** Add a few lines to `~/.claude/CLAUDE.md` so
+every session knows to consult the library:
+
+> Before answering a procedural or factual question about my projects, run
+> `cuz search "<topic>"` (or `cuz query "<question>"`) and use what it returns.
+
+Now a session that hits a question you've already answered *finds the answer*
+instead of re-deriving it. You can also search by hand any time:
 
 ```bash
 cuz search "deploy staging"                  # keyword
 cuz query  "how do we handle oauth on ios"   # hybrid, reranked
 ```
 
-And **skills** distilled into a project's `.claude/skills/` load themselves the
-next time their triggers match — no lookup needed.
+(Prefer a real tool over a Bash call? `qmd` ships an MCP server — register it
+per-project in `.mcp.json`.)
 
 ## Commands
 
