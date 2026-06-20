@@ -207,7 +207,6 @@ cuz status         agents loaded? today's spend, latest proposal
 bin/            the engine (sweep, extract, prepare, reindex, init, dispatcher)
 cuz-distill/    the human-in-the-loop distill skill (/cuz-distill)
 schedule/       launchd templates + manager
-legacy/         the retired per-event hook approach (opt-in)
 templates/      what `cuz init` copies into a new brain
 ```
 
