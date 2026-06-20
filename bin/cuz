@@ -13,7 +13,16 @@
 #
 # To DISTILL (the smart pass), run the /cuz-distill skill inside Claude Code.
 set -uo pipefail
-HERE="$(cd "$(dirname "$0")" && pwd)"
+# Resolve symlinks (macOS has no readlink -f) so `cuz` works when linked onto PATH.
+SELF="$0"
+while [ -L "$SELF" ]; do
+  link="$(readlink "$SELF")"
+  case "$link" in
+    /*) SELF="$link" ;;
+    *)  SELF="$(dirname "$SELF")/$link" ;;
+  esac
+done
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
 cmd="${1:-}"; shift || true
 case "$cmd" in
   init)      exec "$HERE/cuz-init" "$@" ;;
