@@ -1,50 +1,69 @@
 #!/usr/bin/env bash
 # Link your distilled cuz skills into Claude Code so they auto-load on trigger.
-# Skills live in your brain ($CUZ_HOME/library/skills) but Claude Code only loads
-# skills from its own skills dir — this symlinks them across.
+# Skills live in your brain ($CUZ_HOME/library/skills); Claude Code only loads
+# skills from a config dir's skills/ folder, so this symlinks them across.
 #
-#   cuz skills status               list brain skills + whether they're linked
-#   cuz skills install [name...]    symlink all (or named) into ~/.claude/skills
-#   cuz skills uninstall [name...]  remove those symlinks
+#   cuz skills status    [--all-configs]
+#   cuz skills install   [--all-configs] [name...]
+#   cuz skills uninstall [--all-configs] [name...]
 #
-# Override the target dir with CUZ_SKILLS_DIR (e.g. a project's .claude/skills).
+# Default target is ~/.claude/skills (or $CUZ_SKILLS_DIR). --all-configs targets
+# every ~/.claude* config dir you actually run sessions from (skills self-gate on
+# their triggers, so an unrelated skill sitting in a config is harmless).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; . "$HERE/_cuz-env.sh"
 SRC_DIR="$CUZ_HOME/library/skills"
-DEST_DIR="${CUZ_SKILLS_DIR:-$HOME/.claude/skills}"
 
 mode="${1:-status}"; [ $# -gt 0 ] && shift
-all="$(ls "$SRC_DIR" 2>/dev/null || true)"
-sel="$*"; [ -z "$sel" ] && sel="$all"
+ALL=0
+if [ "${1:-}" = "--all-configs" ]; then ALL=1; shift; fi
+all_skills="$(ls "$SRC_DIR" 2>/dev/null || true)"
+sel="$*"; [ -z "$sel" ] && sel="$all_skills"
+
+target_dirs() {
+  if [ "$ALL" -eq 1 ]; then
+    for d in "$HOME/.claude" "$HOME"/.claude-*; do
+      [ -d "$d" ] || continue
+      case "$d" in *.lock) continue ;; esac
+      { [ -f "$d/settings.json" ] || [ -d "$d/projects" ]; } && echo "$d/skills"
+    done
+  else
+    echo "${CUZ_SKILLS_DIR:-$HOME/.claude/skills}"
+  fi
+}
+
+link_one() {  # $1=dest_dir  $2=name
+  local dest="$1/$2" src="$SRC_DIR/$2"
+  [ -f "$src/SKILL.md" ] || { echo "  skip $2 (no SKILL.md)"; return; }
+  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then echo "  ok   $2"; return; fi
+  if [ -e "$dest" ]; then echo "  SKIP $2 ($dest exists, not a cuz link)"; return; fi
+  mkdir -p "$1"; ln -s "$src" "$dest" && echo "  link $2"
+}
+
+unlink_one() {  # $1=dest_dir  $2=name
+  local dest="$1/$2"
+  [ -L "$dest" ] && [ "$(readlink "$dest")" = "$SRC_DIR/$2" ] && { rm -f "$dest"; echo "  unlink $2"; }
+}
+
+[ -z "$all_skills" ] && { echo "no skills in $SRC_DIR yet"; exit 0; }
 
 case "$mode" in
   status)
-    [ -z "$all" ] && { echo "no skills in $SRC_DIR yet"; exit 0; }
-    printf '%-26s %s\n' "skill" "linked into $DEST_DIR?"
-    for n in $all; do
-      d="$DEST_DIR/$n"
-      if [ -L "$d" ] && [ "$(readlink "$d")" = "$SRC_DIR/$n" ]; then s="yes"
-      elif [ -e "$d" ]; then s="NO — name taken by something else"
-      else s="no"; fi
-      printf '%-26s %s\n' "$n" "$s"
+    for dir in $(target_dirs); do
+      echo "${dir/#$HOME/~}:"
+      for n in $all_skills; do
+        d="$dir/$n"
+        if [ -L "$d" ] && [ "$(readlink "$d")" = "$SRC_DIR/$n" ]; then s="yes"
+        elif [ -e "$d" ]; then s="NO (name taken)"; else s="-"; fi
+        printf '  %-26s %s\n' "$n" "$s"
+      done
     done
     ;;
   install)
-    mkdir -p "$DEST_DIR"
-    for n in $sel; do
-      src="$SRC_DIR/$n"; d="$DEST_DIR/$n"
-      [ -f "$src/SKILL.md" ] && true || { echo "skip $n (no SKILL.md)"; continue; }
-      if [ -L "$d" ] && [ "$(readlink "$d")" = "$src" ]; then echo "ok    $n (already linked)"; continue; fi
-      if [ -e "$d" ]; then echo "SKIP  $n ($d exists and isn't a cuz link)"; continue; fi
-      ln -s "$src" "$d" && echo "link  $n"
-    done
+    for dir in $(target_dirs); do echo "${dir/#$HOME/~}:"; for n in $sel; do link_one "$dir" "$n"; done; done
     ;;
   uninstall)
-    for n in $sel; do
-      d="$DEST_DIR/$n"
-      if [ -L "$d" ] && [ "$(readlink "$d")" = "$SRC_DIR/$n" ]; then rm -f "$d"; echo "unlink $n"
-      else echo "skip  $n (not a cuz link)"; fi
-    done
+    for dir in $(target_dirs); do echo "${dir/#$HOME/~}:"; for n in $sel; do unlink_one "$dir" "$n"; done; done
     ;;
-  *) echo "usage: cuz skills [status|install|uninstall] [name...]"; exit 1 ;;
+  *) echo "usage: cuz skills [status|install|uninstall] [--all-configs] [name...]"; exit 1 ;;
 esac

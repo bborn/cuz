@@ -165,17 +165,20 @@ skills into Claude Code's skills dir, so they fire on their own the next time
 their triggers match:
 
 ```bash
-cuz skills install            # link all (or: cuz skills install <name> ...)
-cuz skills status             # see what's linked
+cuz skills install                 # link all (or: cuz skills install <name> ...)
+cuz skills install --all-configs   # if you run several Claude config dirs
+cuz skills status                  # see what's linked
 ```
 
-**2. Tell the agent the facts exist.** Add a few lines to `~/.claude/CLAUDE.md` so
-every session knows to consult the library:
+**2. Let the agent know it *can* search.** Add a couple of lines to
+`~/.claude/CLAUDE.md` so sessions know the library exists — framed as available,
+not mandatory (you don't want every session searching for everything):
 
-> Before answering a procedural or factual question about my projects, run
-> `cuz search "<topic>"` (or `cuz query "<question>"`) and use what it returns.
+> I keep a distilled knowledge base ("cuz"). If a question about my projects would
+> benefit, you can search it with `cuz search "<topic>"` / `cuz query "<q>"` and
+> use anything relevant. No need to search for everything.
 
-Now a session that hits a question you've already answered *finds the answer*
+A session that hits a question you've already answered can then *find the answer*
 instead of re-deriving it. You can also search by hand any time:
 
 ```bash
