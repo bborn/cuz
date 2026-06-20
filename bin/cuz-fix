@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# cuz fix — correct or delete a wrong fact/skill in your library, fast.
+#   cuz fix "<query>"   find the matching line, open it in $EDITOR, reindex on save
+#   cuz fix             open the whole library dir in $EDITOR, reindex on exit
+#
+# Deleting a wrong memory is just removing its line and saving. The reindex runs
+# automatically so the change is live in `cuz search` immediately.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; . "$HERE/_cuz-env.sh"
+ED="${EDITOR:-vi}"
+LIB="$CUZ_HOME/library"
+
+q="${*:-}"
+if [ -z "$q" ]; then
+  "$ED" "$LIB"
+  exec bash "$HERE/cuz-reindex.sh"
+fi
+
+# Top hit looks like:  qmd://cuz-library/memory/foo.md:70
+hit=$(qmd --index "$CUZ_INDEX" search "$q" 2>/dev/null | grep -oE 'qmd://cuz-library/[^ ]+' | head -1)
+if [ -z "$hit" ]; then
+  echo "cuz fix: nothing in your library matched \"$q\"."
+  echo "Browse it directly:  cuz fix          (opens $LIB)"
+  exit 1
+fi
+
+rel="${hit#qmd://cuz-library/}"            # memory/foo.md:70  (line optional)
+line=""
+case "$rel" in *:*) line="${rel##*:}"; rel="${rel%:*}";; esac
+file="$LIB/$rel"
+[ -f "$file" ] || { echo "cuz fix: resolved to $file but it isn't there."; exit 1; }
+
+echo "→ $rel${line:+  (line $line)}  — fix or delete the wrong line, save, exit."
+if [ -n "$line" ]; then "$ED" "+$line" "$file"; else "$ED" "$file"; fi
+
+bash "$HERE/cuz-reindex.sh"
+
+# Show the change and remind to commit, if the brain is a git repo.
+if git -C "$CUZ_HOME" rev-parse --git-dir >/dev/null 2>&1; then
+  if ! git -C "$CUZ_HOME" diff --quiet -- "library/$rel" 2>/dev/null; then
+    echo "--- your change ---"
+    git -C "$CUZ_HOME" --no-pager diff -- "library/$rel" | sed -n '5,40p'
+    echo "commit it:  git -C \"$CUZ_HOME\" commit -am 'fix: correct $rel'"
+  else
+    echo "(no change saved)"
+  fi
+fi

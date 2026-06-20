@@ -198,13 +198,24 @@ templates/      what `cuz init` copies into a new brain
 
 Worth knowing before you trust it: automatic capture can record something an agent
 believed *mid-session*, before you corrected it. If distill isn't careful, that
-wrong belief lands in your library and every future session reads it as fact. This
-happened to me — a captured "correction" flipped a true fact into a false one.
+wrong belief lands in your library and future sessions read it as fact.
 
-That's exactly why distill keeps a human in the loop, and why it treats a capture
-that "corrects" an existing fact as something to double-check rather than
-auto-apply. Self-maintaining memory is convenient; it's not a substitute for the
-review step. Don't skip it.
+Three things keep that in check:
+
+- **Distill has a human in the loop.** It auto-applies the obvious and stops to
+  ask on the ambiguous — and it treats a capture that "corrects" an existing fact
+  as a flag-for-review, not an auto-apply.
+- **One command fixes a bad fact.** `cuz fix` finds the offending line, opens it
+  in your editor, and re-indexes the moment you save:
+  ```bash
+  cuz fix "acme deploys on merge"   # opens library/memory/acme-web.md at that line
+  ```
+  Deleting a wrong memory is just removing the line; killing a bad skill is
+  deleting its file.
+- **Everything is git.** Your brain is a repo and every distill is a commit, so a
+  whole bad pass is one `git revert` away.
+
+Self-maintaining memory is convenient; it's not a substitute for the review step.
 
 ## License
 

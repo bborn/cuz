@@ -106,3 +106,7 @@ the defaults you picked (one line each); and "anything to undo? just say so."
   it's sprawling, you're keeping noise.
 - **Ambient by default.** Auto-apply the obvious; flag only genuine hard calls.
   The safety net is the archive + git history, not a sign-off on every line.
+- **Wrong facts are cheap to fix.** If one slips through, `cuz fix "<thing>"` opens
+  the offending line for correction and reindexes; a bad pass is one `git revert`
+  in the brain. But catching it here is cheaper than every future session reading
+  it — so when a cluster would overwrite an existing correct fact, slow down.
