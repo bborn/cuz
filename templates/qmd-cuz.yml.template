@@ -1,0 +1,6 @@
+collections:
+  cuz-library:
+    path: __LIBRARY__
+    pattern: "**/*.md"
+    context:
+      "": "cuz distilled library — durable facts, decisions, and procedures captured from AI coding sessions and curated by the /cuz-distill pass."

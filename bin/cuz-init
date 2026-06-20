@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# cuz init — scaffold a new (private) brain repo and wire the engine to it.
+#
+#   cuz init ~/my-brain [--name "Your Name"] [--context "one line about you"]
+#
+# Creates the brain dir (git-initialized), seeds it from the engine's templates,
+# writes ~/.config/cuz/config (so every engine script finds it), and registers
+# the qmd search index. Idempotent-ish: refuses to clobber a non-empty brain.
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ENGINE="$(cd "$HERE/.." && pwd)"
+TPL="$ENGINE/templates"
+
+BRAIN="" NAME="" CONTEXT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --name)    NAME="${2:-}"; shift 2 ;;
+    --context) CONTEXT="${2:-}"; shift 2 ;;
+    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*) echo "cuz init: unknown flag $1" >&2; exit 1 ;;
+    *)  BRAIN="$1"; shift ;;
+  esac
+done
+[ -n "$BRAIN" ] || { echo "usage: cuz init <brain-dir> [--name N] [--context C]" >&2; exit 1; }
+
+BRAIN="$(python3 -c 'import os,sys;print(os.path.abspath(os.path.expanduser(sys.argv[1])))' "$BRAIN")"
+NAME="${NAME:-you}"
+CONTEXT="${CONTEXT:-<one or two sentences about who you are and what you work on — edit me in prompts/extract.md>}"
+
+if [ -d "$BRAIN" ] && [ -n "$(ls -A "$BRAIN" 2>/dev/null)" ]; then
+  echo "cuz init: $BRAIN exists and is not empty — refusing to clobber." >&2
+  echo "Point cuz at it instead: echo 'CUZ_HOME=$BRAIN' >> ~/.config/cuz/config" >&2
+  exit 1
+fi
+
+echo "→ scaffolding brain at $BRAIN"
+mkdir -p "$BRAIN"/{library/memory,library/skills,processed,proposals}
+cp "$TPL/INBOX.md"   "$BRAIN/INBOX.md"
+cp "$TPL/gitignore"  "$BRAIN/.gitignore"
+cp -R "$TPL/prompts" "$BRAIN/prompts"
+cp "$TPL/library/memory/decisions.example.md" "$BRAIN/library/memory/decisions.md"
+cp -R "$TPL/library/skills/example-skill" "$BRAIN/library/skills/example-skill"
+: > "$BRAIN/processed/.gitkeep"
+: > "$BRAIN/proposals/.gitkeep"
+
+# Personalize the capture/propose prompts in the brain (engine ships templates).
+python3 - "$NAME" "$CONTEXT" "$BRAIN/prompts/extract.md" "$BRAIN/prompts/distill-propose.md" <<'PY'
+import sys
+name, context = sys.argv[1], sys.argv[2]
+for path in sys.argv[3:]:
+    s = open(path).read().replace("{{USER_NAME}}", name).replace("{{USER_CONTEXT}}", context)
+    open(path, "w").write(s)
+PY
+
+echo "→ writing ~/.config/cuz/config"
+mkdir -p "$HOME/.config/cuz"
+CFG="$HOME/.config/cuz/config"
+if [ -f "$CFG" ] && grep -q '^CUZ_HOME=' "$CFG"; then
+  echo "  (config already has CUZ_HOME — leaving it; see $CFG)"
+else
+  cp "$TPL/config.example" "$CFG"
+  printf '\nCUZ_HOME=%s\n' "$BRAIN" >> "$CFG"
+fi
+
+echo "→ registering qmd index '${CUZ_INDEX:-cuz}' → $BRAIN/library"
+mkdir -p "$HOME/.config/qmd"
+sed "s|__LIBRARY__|$BRAIN/library|g" "$TPL/qmd-cuz.yml.template" > "$HOME/.config/qmd/${CUZ_INDEX:-cuz}.yml"
+
+echo "→ git init"
+( cd "$BRAIN" && git init -q && git add -A && git commit -q -m "cuz: initial brain scaffold" ) || true
+
+echo "→ seeding search index (best-effort)"
+qmd --index "${CUZ_INDEX:-cuz}" update >/dev/null 2>&1 || true
+
+cat <<EOF
+
+✅ brain ready at $BRAIN
+
+Next:
+  1. Edit $BRAIN/prompts/extract.md — make the identity/context yours.
+  2. Install the background agents:   cuz schedule install
+  3. Install the distill skill into Claude Code:
+       ln -s "$ENGINE/cuz-distill" ~/.claude/skills/cuz-distill
+  4. (Optional) push the brain somewhere PRIVATE:
+       cd $BRAIN && git remote add origin git@github.com:you/cuz-brain.git && git push -u origin main
+
+Capture fills $BRAIN/INBOX.md automatically. Run /cuz-distill in Claude Code to
+fold it into $BRAIN/library/.
+EOF

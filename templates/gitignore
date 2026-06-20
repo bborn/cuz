@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Transient capture buffers — they churn constantly; the durable record is
+# library/ + processed/. Un-ignore INBOX.md if you want to sync raw capture
+# across machines (e.g. capture on a laptop, distill on a desktop).
+INBOX.md
+proposals/*.md
+!proposals/.gitkeep

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cuz.sweep</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__BASH__</string>
+    <string>__ENGINE__/bin/cuz-sweep.sh</string>
+  </array>
+
+  <!-- Tunables. Lower CUZ_DAILY_USD to spend less; raise to capture more.
+       CUZ_CONFIG tells the script where your brain (CUZ_HOME) is. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CUZ_CONFIG</key>
+    <string>__CONFIG__</string>
+    <key>CUZ_DAILY_USD</key>
+    <string>1.50</string>
+    <key>CUZ_ACTIVE_WINDOW_MIN</key>
+    <string>15</string>
+    <key>CUZ_MAX_OVERNIGHT</key>
+    <string>25</string>
+    <key>CUZ_MAX_DAYTIME</key>
+    <string>6</string>
+  </dict>
+
+  <!-- Every hour. The script itself decides whether to actually spend. -->
+  <key>StartInterval</key>
+  <integer>3600</integer>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__CACHE__/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__CACHE__/launchd.err.log</string>
+</dict>
+</plist>

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# cuz — Capture · Understand · Z(distill). A two-speed knowledge layer for your
+# AI coding sessions: dumb high-recall capture + smart human-in-the-loop distill.
+#
+#   cuz init <dir>      scaffold a new (private) brain repo and wire it up
+#   cuz sweep           run one capture sweep now (fills the inbox)
+#   cuz prepare         run the weekly distill-prepare now (writes a proposal)
+#   cuz reindex         refresh the qmd search index over your library
+#   cuz search <q>      keyword search your distilled library
+#   cuz query  <q>      hybrid (LLM) search your distilled library
+#   cuz status          agents loaded? today's spend, latest proposal
+#   cuz schedule ...    install | uninstall | status the background agents
+#
+# To DISTILL (the smart pass), run the /cuz-distill skill inside Claude Code.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  init)      exec "$HERE/cuz-init" "$@" ;;
+  sweep)     exec bash "$HERE/cuz-sweep.sh" "$@" ;;
+  prepare)   exec bash "$HERE/cuz-distill-prepare.sh" "$@" ;;
+  reindex)   exec bash "$HERE/cuz-reindex.sh" "$@" ;;
+  schedule)  exec bash "$HERE/../schedule/schedule.sh" "$@" ;;
+  status)    exec bash "$HERE/../schedule/schedule.sh" status ;;
+  search)    . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" search "$@" ;;
+  query)     . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" query "$@" ;;
+  ""|-h|--help|help)
+    awk 'NR>1{ if ($0 !~ /^#/) exit; print }' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "cuz: unknown command '$cmd' (try: cuz --help)" >&2; exit 1 ;;
+esac

@@ -1,0 +1,17 @@
+# cuz config — sourced by every engine script (~/.config/cuz/config).
+# `cuz init` appends CUZ_HOME below. Everything here is optional except CUZ_HOME.
+
+# Where your brain lives (the private repo with library/ processed/ INBOX.md).
+# CUZ_HOME=/Users/you/cuz-brain
+
+# Cache dir for logs, watermarks, the usage ledger, locks (default ~/.cache/cuz).
+# CUZ_CACHE=$HOME/.cache/cuz
+
+# qmd index name; reads ~/.config/qmd/<name>.yml (default "cuz").
+# CUZ_INDEX=cuz
+
+# --- cost knobs (also overridable per-agent in the launchd plists) ---
+# CUZ_DAILY_USD=1.50            # hard daily cap for the hourly capture sweep
+# CUZ_MODEL=claude-haiku-4-5-20251001   # capture model (cheap; raise for recall)
+# CUZ_DISTILL_MODEL=claude-sonnet-4-6   # weekly propose model (the smart layer)
+# CUZ_DISTILL_USD=2.00          # separate cap for the weekly propose pass

@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.pyc
+# This repo is the ENGINE only — it must never contain a brain.
+# A user's library/processed/INBOX live in their own private CUZ_HOME repo,
+# created by `cuz init`. Guard against accidental commits of real knowledge:
+/library/
+/processed/
+/proposals/
+/INBOX.md
