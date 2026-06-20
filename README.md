@@ -37,6 +37,58 @@ ambiguous ones. It's all in git, so a bad write is one revert away.
 The split is the point: the cheap always-on layer gets to be reckless because the
 careful layer cleans up after it.
 
+## Watch one fact move through it
+
+Say you spend a session wrestling with a deploy. Next time the sweep runs, that
+session lands in your inbox as raw, over-collected lines:
+
+```
+<!-- 2026-02-11 14:02 · acme-web · a1b2c3d4 · sweep -->
+#fact | acme prod runs on Hatchbox; merging to main does NOT deploy — you have to click Deploy in the Hatchbox UI
+#procedure | deploy acme-web: merge to main, open Hatchbox → acme-web → Deploy, watch the log until "Deployed"
+#decision | staying on Hatchbox over Kamal for now — the team knows it, the app is small
+#fact | the deploy log is at hatchbox.io/apps/acme-web/activity   <- noise, gets dropped
+```
+
+A few sessions later the same deploy facts have landed three more times. You run
+`/cuz-distill`; it clusters the dupes, drops the noise, and writes the keeper into
+`library/memory/acme-web.md`:
+
+```markdown
+## Deploy
+- **Prod is on Hatchbox and is NOT auto-deployed.** Merging to `main` does nothing
+  on its own — click Deploy in the Hatchbox UI and watch the log until it reads
+  "Deployed". (Chose Hatchbox over Kamal: small app, team knows it.)
+```
+
+Because the *procedure* showed up more than once, distill also promotes it to an
+auto-loading skill at `library/skills/deploy-acme/SKILL.md`:
+
+```markdown
+---
+name: deploy-acme
+description: Deploy acme-web to production. Use when asked to deploy, ship, or release acme-web.
+---
+# Deploy acme-web
+1. Merge the PR to `main`.
+2. Open Hatchbox → acme-web → Deploy.
+3. Watch the deploy log until it reads "Deployed" — merging alone does nothing.
+```
+
+Now it pays off. Weeks later, in a fresh session:
+
+```
+$ cuz search "how do I ship acme"
+qmd://cuz-library/memory/acme-web.md:12   92%
+  ## Deploy
+  - Prod is on Hatchbox and is NOT auto-deployed. Merging to `main` does nothing…
+```
+
+And when you just tell an agent "ship acme-web," the `deploy-acme` skill matches
+on its triggers and loads itself — so the agent clicks Deploy and watches the log
+instead of merging and declaring victory. The thing you debugged once is now
+something every future session already knows.
+
 ## Why not just use X?
 
 Fair question.
