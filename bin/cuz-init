@@ -81,6 +81,8 @@ Next:
   2. Install the background agents:   cuz schedule install
   3. Install the distill skill into Claude Code:
        ln -s "$ENGINE/cuz-distill" ~/.claude/skills/cuz-distill
+  3b. Install the reminder (nudges you when a proposal is waiting):
+       cuz hooks install
   4. (Optional) push the brain somewhere PRIVATE:
        cd $BRAIN && git remote add origin git@github.com:you/cuz-brain.git && git push -u origin main
 

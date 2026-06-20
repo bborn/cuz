@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Install/remove the cuz SessionStart reminder hook in your Claude Code config(s).
+# When a distill proposal is waiting, this hook nudges you (once/day, interactive
+# sessions only) to run /cuz-distill. Merges into existing settings.json without
+# clobbering. Idempotent.
+#
+#   cuz hooks install      # add the reminder to every ~/.claude* config dir
+#   cuz hooks uninstall    # remove it
+#   cuz hooks status       # show where it's installed
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ENGINE="$(cd "$HERE/.." && pwd)"
+MODE="${1:-status}"
+CMD="bash \"$ENGINE/bin/cuz-pending-check.sh\""
+
+MODE="$MODE" CMD="$CMD" python3 <<'PY'
+import json, os, glob
+
+mode = os.environ["MODE"].lstrip("-")
+cmd  = os.environ["CMD"]
+home = os.path.expanduser("~")
+EVENT = "SessionStart"
+
+# A real session-running config dir has settings.json OR a projects/ subdir.
+candidates = [home + "/.claude"] + sorted(glob.glob(home + "/.claude-*"))
+targets = []
+for d in candidates:
+    if not os.path.isdir(d) or d.endswith(".lock"):
+        continue
+    if os.path.exists(d + "/settings.json") or os.path.isdir(d + "/projects"):
+        targets.append(d)
+
+def load(p):
+    if not os.path.exists(p):
+        return {}
+    try:
+        return json.load(open(p))
+    except Exception:
+        return {}
+
+def has_cmd(groups):
+    return any(h.get("command") == cmd for g in groups for h in g.get("hooks", []))
+
+for d in targets:
+    sp = d + "/settings.json"
+    data = load(sp)
+    name = os.path.basename(d)
+    groups = data.setdefault("hooks", {}).setdefault(EVENT, [])
+    present = has_cmd(groups)
+
+    if mode == "status":
+        print(f"  {name:28s} {'installed' if present else '-'}")
+        continue
+
+    changed = False
+    if mode == "uninstall":
+        if present:
+            for g in groups:
+                g["hooks"] = [h for h in g.get("hooks", []) if h.get("command") != cmd]
+            data["hooks"][EVENT] = [g for g in groups if g.get("hooks")]
+            changed = True
+    else:  # install
+        if not present:
+            groups.append({"hooks": [{"type": "command", "command": cmd, "timeout": 15}]})
+            changed = True
+
+    if changed:
+        os.makedirs(d, exist_ok=True)
+        json.dump(data, open(sp, "w"), indent=2)
+    action = "skip (already)" if not changed else ("REMOVE" if mode == "uninstall" else "ADD")
+    print(f"  {name:28s} {action}")
+
+if not targets:
+    print("  (no Claude config dirs found)")
+PY

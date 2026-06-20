@@ -135,10 +135,13 @@ cuz init ~/cuz-brain --name "Your Name" \
 
 cuz schedule install                          # background capture (macOS launchd)
 ln -s "$PWD/cuz-distill" ~/.claude/skills/cuz-distill
+cuz hooks install                             # nudge you when a proposal is waiting
 ```
 
-Then just work. The inbox fills on its own. When it's grown, run `/cuz-distill`
-inside Claude Code.
+Then just work. The inbox fills on its own. A weekly job drafts a distill proposal
+and — thanks to `cuz hooks install` — your next Claude Code session reminds you to
+run `/cuz-distill`. (The reminder fires once a day, on interactive sessions only,
+and stays silent when nothing's pending.)
 
 **Needs:** the `claude` CLI (Claude Code), Python 3, and `qmd` (a local markdown
 search tool) for `cuz search`. The scheduled agents use macOS launchd; on Linux,

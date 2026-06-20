@@ -10,6 +10,7 @@
 #   cuz query  <q>      hybrid (LLM) search your distilled library
 #   cuz status          agents loaded? today's spend, latest proposal
 #   cuz schedule ...    install | uninstall | status the background agents
+#   cuz hooks ...        install | uninstall | status the /cuz-distill reminder
 #
 # To DISTILL (the smart pass), run the /cuz-distill skill inside Claude Code.
 set -uo pipefail
@@ -30,6 +31,7 @@ case "$cmd" in
   prepare)   exec bash "$HERE/cuz-distill-prepare.sh" "$@" ;;
   reindex)   exec bash "$HERE/cuz-reindex.sh" "$@" ;;
   schedule)  exec bash "$HERE/../schedule/schedule.sh" "$@" ;;
+  hooks)     exec "$HERE/cuz-hooks" "$@" ;;
   status)    exec bash "$HERE/../schedule/schedule.sh" status ;;
   search)    . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" search "$@" ;;
   query)     . "$HERE/_cuz-env.sh"; exec qmd --index "$CUZ_INDEX" query "$@" ;;
