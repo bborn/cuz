@@ -1,13 +1,8 @@
 # cuz
 
-Every AI coding session starts from zero. You re-explain your stack, your
-conventions, the gotcha that bit you last week — and the next session knows none
-of it. Across a dozen projects, you burn real time re-teaching agents things you
-already taught them.
-
-cuz makes sessions accumulate. It quietly reads your Claude Code transcripts,
+cuz makes coding session knowledge accumulate. It quietly reads your Claude Code transcripts,
 pulls out the durable stuff (facts, decisions, the procedure that finally
-worked), and — with you in the loop — distills it into a small library your
+worked), and, with your help, distills it into a small library your
 future sessions can search and follow. It's plain markdown in a git repo you own.
 
 ## How it works
