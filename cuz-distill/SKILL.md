@@ -94,6 +94,11 @@ write is one revert to undo.
   it to `<date>.applied.md`.
 - **refresh the index:** run `cuz reindex` (or `bin/cuz-reindex.sh`) so the new
   facts are immediately searchable via `qmd --index cuz`.
+- **link new/updated skills:** run `cuz skills install --all-configs` so any skill
+  you created or edited this pass is symlinked into every Claude Code config dir
+  (`~/.claude*`). This is idempotent — it's the step that keeps new skills from
+  silently missing a config. (Skills self-gate on their triggers, so an idle skill
+  sitting in an unrelated config is harmless.)
 
 ### 6. Report
 Keep it short. One tight summary: N entries → M library writes, K kept, J dropped;
